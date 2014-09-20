@@ -2,15 +2,12 @@
 	integer n, r, p, MAXLEN
 c	parameter (MAXLEN = 1E7)
 c	parameter (n = 35, p = 3, r = 1)
-	real *8 done
-	parameter (done = 1.0)
-	complex *16 imag
-	parameter (imag = (0,1))
-	complex *16, allocatable :: A(:),AA(:),B(:),BB(:),C(:)
-	real *8, allocatable :: error(:)
-	real *8 ts,te, TIME(10)
+	complex *16, allocatable :: A(:),AA(:),C(:)
+	real *8 error
+	real *8 ts,te, TIME(10),de_true,de
 c	time start, time end
 	integer i,j,k
+	integer, allocatable :: IPIV(:)
 
 	print *, 'Enter n (order of HODLR Matrix):'
 	read *, n
@@ -18,60 +15,59 @@ c	time start, time end
 	print *, 'Enter p (rank of low-rank approximation):'
 	read *, p
 
-
-	print *, 'Enter r (Number of R.H.S.):'
-	read *, r
-
 	allocate(A(n*n))
 	allocate(AA(n*n))
-	allocate(B(n*r))
-	allocate(BB(n*r))
 	allocate(C(n*r))
-	allocate(error(r))
+	allocate(IPIV(n))
 
-
+	de_true = 1.0
 	call prini(6,13)
 	call generateHODLR(n,A)
-	call copyMatrixZ(n,n,A,AA,n,n)
-	
-c	call generateRHS()
-	do j = 1,r
-		do i = 1,n
-			B(i+(j-1)*n) = cos(i*done)+imag*i
-			C(i+(j-1)*n) = B(i+(j-1)*n)
-		enddo
-	enddo
-	call copyMatrixZ(n,r,B,BB,n,n)
+c	call prin2('A = *',A,n*n*2)
 
+c	do i = 1,n
+c		do j = 1,n
+c			if (i >=j) then
+c				A((i-1)*n+j) = n-i
+c			else
+c				A((i-1)*n+j) = j+i
+c			endif
+c		enddo
+c	enddo
+	call ZGETRF_2(n,A,n,AA,IPIV)
+c	call prinf('IPIV = *',IPIV,n)
+	do i = 1,n
+		de_true = de_true * AA((i-1)*n+i)
+		if (IPIV(i)/=i) then
+			de_true = - de_true
+		endif
+	enddo
+
+	
+	call prin2('det_true = *',de_true, 1)
 c	call CPU_TIME(ts)
 
-	call HODLR_ID(n,A,n,p,B,n,r,TIME)
+	call HODLR_ID_det(de,n,A,n,p,TIME)
 
 c	call CPU_TIME(te)
 
-	call prin2('Elapsed CPU time = *', TIME, 4)
+c	call prin2('Elapsed CPU time = *', TIME, 3)
 
-	call bErrorZ(n,n,r,AA,BB,B,n,n,n,error)
+	error = (de_true - de)/de_true
 
-	call prin2('Backward Error = *', error, r)
+	call prin2('Backward Error = *', error, 1)
+c	call prin2('det_true = *',de_true, 1)
+	call prin2('det = *',de,1)
 
+	deallocate(A)
+	deallocate(AA)
+	deallocate(C)
+	deallocate(IPIV)
 
-
-c	i = 1
-c	j = 1
-c	call passvalue(i)
-c	call prinf('i - j =*',i-j,1)
 
 	stop
 	end
 
-	subroutine passvalue(n)
-	value n
-	integer n
-	n = n+1
-	return
-	end
-	
 	subroutine matrixMul(n,m,l,LDA,LDB,LDC,A,B,C)
 c	matrix multiplication: C = A*B
 c	A: m-by-l

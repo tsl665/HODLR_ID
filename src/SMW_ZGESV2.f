@@ -125,13 +125,36 @@ c	check here for LDB
 	complex *16 LU(LDA,N)
 	integer i,j
 
+c	complex *16 LU2(N,N)
+c	complex *16 E(N,N)
+c	real *8 Err
+
+
 	do i = 1,N
 		do j = 1,N
 			LU(i,j)=A(i,j)
+c			LU2(i,j)=A(i,j)
+c			E(i,j) = LU(i,j)-LU2(i,j)
 		enddo
 	enddo
 
+c	do i = 1,N
+c		call prin2('E_before(:,i) = *', E(1,i), N*2)
+c	enddo
 	call ZGESV(N,NRHS,LU,LDA,IPIV,B,LDB,INFO)
+c	call ZGESV(N,NRHS,LU2,N,IPIV,B,LDB,INFO)
+
+c	Err = 0
+
+c	do i = 1,N
+c		do j = 1,N
+c			Err = Err + (LU(i,j)-LU2(i,j))**2
+c		enddo
+c	enddo
+
+c	Err = sqrt(Err)
+c	call prin2('err = *', err, 1)
+
 
 	return
 	end subroutine ZGESV_3

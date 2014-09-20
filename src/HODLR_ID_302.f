@@ -326,8 +326,12 @@ c	The rest of Proj
 
 	integer i,j,k,pw1,pw2,irow,nrow,pl,pp
 	integer kappa, sns, n, p
-	integer IPIV(LDA)
-	complex *16 LU(LDA,LDA)
+	integer, allocatable :: IPIV(:)
+	complex *16, allocatable :: LU(:,:)
+
+c	integer IPIV(LDA)
+c	complex *16 LU(LDA,LDA)
+
 
 	kappa = work(31)
 	sns = work(32)
@@ -335,11 +339,15 @@ c	The rest of Proj
 	p = work(37)
 	
 	pw1 = (2**kappa-1)*sns+work(1) !the first leaf
+	allocate(IPIV(2*work(pw1+work(4))))
+	allocate(LU(LDA,2*work(pw1+work(4))))
 
 	do k = 1, 2**kappa
 		pw2 = pw1
 		irow = work(pw1 + work(3))
 		nrow = work(pw1 + work(4))
+c		allocate(IPIV(2*nrow))
+c		allocate(LU(2*nrow,2*nrow))
 cccc	check for b: n-by-r
 		call ZGESV_3(nrow,r,a(irow,irow),LDA,b(irow,1),
      &	LDB,LU,IPIV)
@@ -358,7 +366,12 @@ c     &			a(irow,icol),LDA)
 		enddo !j
 
 		pw1 = pw1 + sns
+c		deallocate(IPIV)
+c		deallocate(LU)
 	enddo !k
+
+	deallocate(IPIV)
+	deallocate(LU)
 
 	return
 	end
